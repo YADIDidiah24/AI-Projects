@@ -1,0 +1,51 @@
+import gym
+import numpy as np
+import random
+
+# Create environment
+env = gym.make("CarRacing-v3", render_mode="rgb_array", lap_complete_percent=0.95, domain_randomize=False, continuous=False)
+
+# Hyperparameters
+alpha = 0.1  # Learning rate
+gamma = 0.99  # Discount factor
+epsilon = 1.0  # Exploration rate
+epsilon_decay = 0.995
+epsilon_min = 0.01
+episodes = 1000
+discrete_obs_space = (5, 5, 5)  # Discretization bins for observation space
+discrete_act_space = env.action_space.n
+
+# Discretize observation space
+def discretize_state(state):
+    state = state[:3]  # Use only relevant state information (modify if needed)
+    bins = [np.linspace(-1, 1, discrete_obs_space[i]) for i in range(len(state))]
+    state_index = tuple(np.digitize(state[i], bins[i]) - 1 for i in range(len(state)))
+    return state_index
+
+# Initialize Q-table
+q_table = np.zeros(discrete_obs_space + (discrete_act_space,))
+
+# SARSA algorithm
+for episode in range(episodes):
+    state, _ = env.reset()
+    state = discretize_state(state)
+    action = random.choice(range(discrete_act_space)) if random.uniform(0, 1) < epsilon else np.argmax(q_table[state])
+    done = False
+    total_reward = 0
+    
+    while not done:
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        next_state = discretize_state(next_state)
+        next_action = random.choice(range(discrete_act_space)) if random.uniform(0, 1) < epsilon else np.argmax(q_table[next_state])
+        
+        # SARSA update rule
+        q_table[state][action] += alpha * (reward + gamma * q_table[next_state][next_action] - q_table[state][action])
+        
+        state, action = next_state, next_action
+        total_reward += reward
+        done = terminated or truncated
+    
+    epsilon = max(epsilon * epsilon_decay, epsilon_min)
+    print(f"Episode {episode + 1}: Total Reward = {total_reward}")
+
+env.close()
