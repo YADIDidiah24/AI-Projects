@@ -1,16 +1,16 @@
 import streamlit as st
 from keras.models import load_model
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import cv2
 import io
-from util import classify, set_background, generate_heatmap
+from util import classify, generate_heatmap, show_intermediate_activations, plot_prediction_confidence
 
 # Page configuration
 st.set_page_config(
-    page_title="Pneumonia Detection System",
+    page_title="PneumoScan AI - Pneumonia Detection System",
     page_icon="🫁",
     layout="wide"
 )
@@ -62,10 +62,15 @@ st.markdown("""
 # set_background('./bgs/bg5.png')
 
 # Header
-st.markdown('<div class="main-header">🫁 Advanced Pneumonia Detection System</div>', unsafe_allow_html=True)
-
+st.markdown('<div class="main-header">🫁 PneumoScan AI - Advanced Pneumonia Detection System</div>', unsafe_allow_html=True)
 # Sidebar with information
 with st.sidebar:
+    st.markdown("""
+        <div style="text-align: center; padding: 15px 0; color: white; margin-top: -50">
+            <h2 style="color: #3498db;">🫁 PneumoScan AI</h2>
+            <p style="font-size: 14px; color: #bdc3c7;">Version 1.0</p>
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("## About")
     st.info("This application uses deep learning to detect pneumonia from chest X-ray images.")
     
@@ -79,11 +84,9 @@ with st.sidebar:
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("Accuracy", "98.42%")
         st.markdown('</div>', unsafe_allow_html=True)
     with col2:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.metric("AUC", "0.9913")
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -147,20 +150,18 @@ if file is not None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.image(image, use_column_width=True, caption="Uploaded X-ray")
-    
+        st.image(image, use_container_width=True, caption="Uploaded X-ray")
+
     # Classify image
     class_name, conf_score = classify(image, model, class_names)
     
     # Generate heatmap
     with col2:
-        heatmap_img = generate_heatmap(image, model)
-        st.image(heatmap_img, use_column_width=True, caption="Activation Heatmap")
+
+        show_intermediate_activations(image, model)
     
-    # Display result with nice formatting
     st.markdown('<div class="sub-header">Diagnosis Result</div>', unsafe_allow_html=True)
     
-    # Color-coded result
     result_class = "pneumonia-result" if class_name == "PNEUMONIA" else "normal-result"
     st.markdown(f'<div class="{result_class}">{class_name}</div>', unsafe_allow_html=True)
     
@@ -170,7 +171,7 @@ if file is not None:
     
     # Additional information based on diagnosis
     if class_name == "PNEUMONIA":
-        st.markdown('<div class="info-box">', unsafe_allow_html=True)
+        st.markdown('<div >', unsafe_allow_html=True)
         st.markdown("""
         ### Pneumonia Detected
         The model has detected patterns consistent with pneumonia in this X-ray. Key observations:
@@ -182,7 +183,7 @@ if file is not None:
         """)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="info-box">', unsafe_allow_html=True)
+        st.markdown('<div >', unsafe_allow_html=True)
         st.markdown("""
         ### No Pneumonia Detected
         The model suggests this X-ray appears normal. Key observations:
